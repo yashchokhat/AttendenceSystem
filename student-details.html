@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Details</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .gradient-bg {
+      background: linear-gradient(-45deg, #1e293b, #334155, #475569);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+    }
+    .card {
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+    }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center font-['Inter']">
+  <div class="w-full max-w-md px-6 py-8">
+    <div class="card bg-white/10 rounded-xl shadow-2xl p-8 border border-white/10">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-white mb-2">Student Registration</h1>
+        <p class="text-white/70">Please enter student details</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label for="rfidInput" class="block text-sm font-medium text-white/80 mb-1">RFID Tag</label>
+          <input type="text" id="rfidInput" placeholder="Scan RFID tag" 
+            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+        </div>
+
+        <div>
+          <label for="name" class="block text-sm font-medium text-white/80 mb-1">Full Name</label>
+          <input type="text" id="name" placeholder="Student name" 
+            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="roll" class="block text-sm font-medium text-white/80 mb-1">Roll Number</label>
+            <input type="text" id="roll" placeholder="Roll no." 
+              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+          </div>
+          <div>
+            <label for="class" class="block text-sm font-medium text-white/80 mb-1">Class</label>
+            <input type="text" id="class" placeholder="Class" 
+              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="section" class="block text-sm font-medium text-white/80 mb-1">Section</label>
+            <input type="text" id="section" placeholder="Section" 
+              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+          </div>
+          <div>
+            <label for="contact" class="block text-sm font-medium text-white/80 mb-1">Contact</label>
+            <input type="text" id="contact" placeholder="Phone number" 
+              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+          </div>
+        </div>
+      </div>
+
+      <button onclick="saveStudentDetails()" 
+        class="mt-6 w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-medium shadow-md hover:shadow-lg transition-all duration-300">
+        Save Student Details
+      </button>
+
+      <div id="message" class="mt-4 text-center text-sm p-3 rounded-lg"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    // ✅ Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID",
+      databaseURL: "https://iot-esp8266-73cc1-default-rtdb.firebaseio.com/"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // ✅ Load Existing Data if RFID is Provided
+    window.onload = async function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const rfidTag = urlParams.get("rfidTag");
+
+      if (rfidTag) {
+        document.getElementById('rfidInput').value = rfidTag;
+        const refPath = `attendance/${rfidTag}`;
+        const snapshot = await get(ref(db, refPath));
+
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          document.getElementById('name').value = data.name || '';
+          document.getElementById('roll').value = data.roll || '';
+          document.getElementById('class').value = data.class || '';
+          document.getElementById('section').value = data.section || '';
+          document.getElementById('contact').value = data.contact || '';
+        }
+      }
+    };
+
+    // ✅ Save All Details
+    window.saveStudentDetails = async function () {
+      const rfidTag = document.getElementById('rfidInput').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const roll = document.getElementById('roll').value.trim();
+      const studentClass = document.getElementById('class').value.trim();
+      const section = document.getElementById('section').value.trim();
+      const contact = document.getElementById('contact').value.trim();
+      const message = document.getElementById('message');
+
+      if (!rfidTag || !name || !roll || !studentClass || !section || !contact) {
+        message.innerText = "Please fill in all fields.";
+        message.className = "bg-rose-500/20 text-rose-300";
+        return;
+      }
+
+      try {
+        const dataRef = ref(db, `attendance/${rfidTag}`);
+        await set(dataRef, {
+          name,
+          roll,
+          class: studentClass,
+          section,
+          contact
+        });
+
+        message.innerText = "Student details saved successfully!";
+        message.className = "bg-emerald-500/20 text-emerald-300";
+
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1500);
+      } catch (err) {
+        message.innerText = "Error: " + err.message;
+        message.className = "bg-rose-500/20 text-rose-300";
+      }
+    };
+  </script>
+</body>
+</html>

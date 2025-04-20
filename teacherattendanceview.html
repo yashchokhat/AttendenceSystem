@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Attendance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .header-gradient {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+        .shadow-card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="header-gradient text-white py-6 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <h1 class="text-3xl font-bold">Attendance Records</h1>
+                <p class="mt-2 text-indigo-100">View and manage employee attendance data</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+            <!-- Search Panel -->
+            <div class="bg-white rounded-lg shadow-card p-6 mb-8">
+                <div class="flex flex-col sm:flex-row gap-4 items-end">
+                    <div class="flex-1 w-full">
+                        <label for="employeeId" class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-id-card text-gray-400"></i>
+                            </div>
+                            <input type="text" id="employeeId" placeholder="Enter Employee ID" 
+                                class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-12 py-2 sm:text-sm border-gray-300 rounded-md">
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 w-full">
+                        <label for="attendanceDate" class="block text-sm font-medium text-gray-700 mb-1">Date Filter</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-calendar text-gray-400"></i>
+                            </div>
+                            <input type="date" id="attendanceDate" 
+                                class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 py-2 sm:text-sm border-gray-300 rounded-md">
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="fetchAttendance()" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-search mr-2"></i> View Attendance
+                        </button>
+                        <button onclick="downloadPDF()" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                            <i class="fas fa-file-pdf mr-2"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Details Card -->
+            <div id="employeeDetails" class="bg-white rounded-lg shadow-card p-6 mb-8 hidden">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Employee Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Full Name</p>
+                        <p id="empName" class="mt-1 text-sm text-gray-900">--</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Employee ID</p>
+                        <p id="empId" class="mt-1 text-sm text-gray-900">--</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Department</p>
+                        <p id="empDept" class="mt-1 text-sm text-gray-900">--</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Email</p>
+                        <p id="empEmail" class="mt-1 text-sm text-gray-900">--</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Contact Number</p>
+                        <p id="empContact" class="mt-1 text-sm text-gray-900">--</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Table -->
+            <div class="bg-white shadow-card rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table id="attendanceTable" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceBody" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                    Enter employee ID and click "View Attendance"
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSy...",
+            authDomain: "iot-esp8266-73cc1.firebaseapp.com",
+            databaseURL: "https://iot-esp8266-73cc1-default-rtdb.firebaseio.com/",
+            projectId: "iot-esp8266-73cc1",
+            storageBucket: "iot-esp8266-73cc1.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+    
+        function formatTime(timeStr) {
+            if (!timeStr || typeof timeStr !== "string") return "--";
+    
+            let timeParts = timeStr.split(':');
+            if (timeParts.length < 2) return "--"; 
+
+            let hour = parseInt(timeParts[0], 10);
+            let minute = parseInt(timeParts[1], 10);
+            if (isNaN(hour) || isNaN(minute)) return "--"; 
+
+            let period = hour >= 12 ? 'PM' : 'AM';
+            hour = hour % 12 || 12; 
+
+            return `${hour}:${minute.toString().padStart(2, '0')} ${period}`;
+        }
+
+        function getStatus(checkIn, checkOut) {
+            if (!checkIn || checkIn === "--") return "Absent";
+            if (!checkOut || checkOut === "--") return "Present (No Check-out)";
+            return "Present";
+        }
+
+        function fetchAttendance() {
+            let empId = document.getElementById('employeeId').value.trim();
+            let dateFilter = document.getElementById('attendanceDate').value;
+            let employeeDetailsDiv = document.getElementById("employeeDetails");
+            let tableBody = document.getElementById("attendanceBody");
+
+            if (!empId) {
+                alert("Please enter Employee ID");
+                return;
+            }
+
+            tableBody.innerHTML = `<tr>
+                <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                    <div class="flex justify-center items-center">
+                        <i class="fas fa-spinner fa-spin mr-2"></i> Loading attendance data...
+                    </div>
+                </td>
+            </tr>`;
+
+            let empRef = firebase.database().ref(`faculty/${empId}`);
+            empRef.once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        let empData = snapshot.val();
+                        document.getElementById('empName').textContent = empData.Name || "--";
+                        document.getElementById('empId').textContent = empData["Employee ID"] || "--";
+                        document.getElementById('empDept').textContent = empData.Department || "--";
+                        document.getElementById('empEmail').textContent = empData.Email || "--";
+                        document.getElementById('empContact').textContent = empData["Contact Number"] || "--";
+                        employeeDetailsDiv.classList.remove('hidden');
+                    } else {
+                        employeeDetailsDiv.classList.add('hidden');
+                    }
+                });
+
+            let dbRef = dateFilter ? firebase.database().ref(`attendance/${empId}/${dateFilter}`) 
+                                   : firebase.database().ref(`attendance/${empId}`);
+
+            dbRef.once('value')
+                .then(snapshot => {
+                    tableBody.innerHTML = "";
+
+                    if (snapshot.exists()) {
+                        let data = snapshot.val();
+
+                        if (dateFilter) {
+                            let checkIn = formatTime(data.in);
+                            let checkOut = formatTime(data.out);
+                            let status = getStatus(checkIn, checkOut);
+
+                            tableBody.innerHTML = `<tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${dateFilter}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${checkIn}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${checkOut}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        ${status === 'Present' ? 'bg-green-100 text-green-800' : 
+                                          status === 'Present (No Check-out)' ? 'bg-yellow-100 text-yellow-800' : 
+                                          'bg-red-100 text-red-800'}">
+                                        ${status}
+                                    </span>
+                                </td>
+                            </tr>`;
+                        } else {
+                            Object.keys(data).forEach(date => {
+                                let checkIn = formatTime(data[date].in);
+                                let checkOut = formatTime(data[date].out);
+                                let status = getStatus(checkIn, checkOut);
+
+                                tableBody.innerHTML += `<tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${date}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${checkIn}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${checkOut}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            ${status === 'Present' ? 'bg-green-100 text-green-800' : 
+                                              status === 'Present (No Check-out)' ? 'bg-yellow-100 text-yellow-800' : 
+                                              'bg-red-100 text-red-800'}">
+                                            ${status}
+                                        </span>
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+                    } else {
+                        tableBody.innerHTML = `<tr>
+                            <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                No attendance records found for this employee
+                            </td>
+                        </tr>`;
+                    }
+                });
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            let doc = new jsPDF();
+            
+            let empId = document.getElementById('employeeId').value.trim();
+            if (!empId) {
+                alert("Please enter Employee ID first");
+                return;
+            }
+
+            // Add title
+            doc.setFontSize(18);
+            doc.setTextColor(40, 40, 40);
+            doc.text("Attendance Report", 105, 15, null, null, 'center');
+
+            // Add employee details
+            doc.setFontSize(12);
+            doc.text(`Employee ID: ${document.getElementById('empId').textContent}`, 14, 30);
+            doc.text(`Name: ${document.getElementById('empName').textContent}`, 14, 40);
+            doc.text(`Department: ${document.getElementById('empDept').textContent}`, 14, 50);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 60);
+
+            // Add table
+            doc.autoTable({
+                head: [['Date', 'Check In', 'Check Out', 'Status']],
+                body: [...document.querySelectorAll("#attendanceBody tr")].map(row => {
+                    return [...row.cells].slice(0, 4).map(cell => {
+                        if (cell.querySelector('span')) {
+                            return cell.querySelector('span').textContent;
+                        }
+                        return cell.textContent;
+                    });
+                }),
+                startY: 70,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [99, 102, 241],
+                    textColor: 255
+                },
+                alternateRowStyles: {
+                    fillColor: [243, 244, 246]
+                }
+            });
+
+            doc.save(`Attendance_Report_${empId}.pdf`);
+        }
+    </script>
+</body>
+</html>

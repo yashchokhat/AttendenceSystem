@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID Attendance Analysis</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script>
+        var firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "iot-esp8266-73cc1.firebaseapp.com",
+            databaseURL: "https://iot-esp8266-73cc1-default-rtdb.firebaseio.com/",
+            projectId: "iot-esp8266-73cc1",
+            storageBucket: "iot-esp8266-73cc1",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        var database = firebase.database();
+
+        function analyzeAttendance() {
+            var tagID = document.getElementById("tagInput").value.trim().toUpperCase();
+            var fromDate = document.getElementById("fromDate").value;
+            var toDate = document.getElementById("toDate").value;
+            
+            if (tagID === "" || fromDate === "" || toDate === "") {
+                alert("Please enter Tag ID and date range.");
+                return;
+            }
+            
+            var attendanceRef = database.ref('attendance/' + tagID + '/events');
+            attendanceRef.once('value', function(snapshot) {
+                if (!snapshot.exists()) {
+                    document.getElementById("analysisResult").innerHTML = "No attendance data found.";
+                    return;
+                }
+                
+                var attendanceData = snapshot.val();
+                var uniqueDates = new Set();
+                var presentDays = 0;
+                var dateRecords = {};
+
+                Object.values(attendanceData).forEach(event => {
+                    var date = event.Date;
+                    var status = event.Status.toUpperCase();
+                    
+                    if (date >= fromDate && date <= toDate) {
+                        uniqueDates.add(date);
+                        if (!dateRecords[date]) {
+                            dateRecords[date] = new Set();
+                        }
+                        dateRecords[date].add(status);
+                    }
+                });
+                
+                Object.keys(dateRecords).forEach(date => {
+                    if (dateRecords[date].has("IN") && dateRecords[date].has("OUT")) {
+                        presentDays++;
+                    }
+                });
+                
+                var totalDays = uniqueDates.size;
+                var attendancePercentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
+                
+                document.getElementById("analysisResult").innerHTML = `
+                    <p><strong>Total Days:</strong> ${totalDays}</p>
+                    <p><strong>Present Days:</strong> ${presentDays}</p>
+                    <p><strong>Attendance Percentage:</strong> ${attendancePercentage}%</p>
+                `;
+            });
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>RFID Attendance Analysis</h2>
+        <input type="text" id="tagInput" placeholder="Enter Tag ID">
+        <input type="date" id="fromDate">
+        <input type="date" id="toDate">
+        <button onclick="analyzeAttendance()">Analyze</button>
+        <div id="analysisResult"></div>
+    </div>
+</body>
+</html>

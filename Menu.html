@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpha Coder | Student Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#faf5ff',
+                            100: '#f3e8ff',
+                            200: '#e9d5ff',
+                            300: '#d8b4fe',
+                            400: '#c084fc',
+                            500: '#a855f7',
+                            600: '#9333ea',
+                            700: '#7e22ce',
+                            800: '#6b21a8',
+                            900: '#581c87',
+                        },
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'float': 'float 6s ease-in-out infinite',
+                        'gradient': 'gradient 8s ease infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        gradient: {
+                            '0%, 100%': { 'background-position': '0% 50%' },
+                            '50%': { 'background-position': '100% 50%' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #0ea5e9, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-['Inter'] min-h-screen flex flex-col">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDEFEfN0FvjX5u1Upg-WTqgvWXpDha-8Kc",
+            authDomain: "iot-esp8266-73cc1.firebaseapp.com",
+            projectId: "iot-esp8266-73cc1",
+            storageBucket: "iot-esp8266-73cc1.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        window.onload = () => {
+            const userEmail = document.getElementById('userEmail');
+            const userName = document.getElementById('userName');
+            const loader = document.getElementById('loading');
+            const menuBtn = document.getElementById('menu-btn');
+            const sidebar = document.getElementById('sidebar');
+
+            menuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+            });
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userEmail.innerText = user.email;
+                    // Extract name from email for display
+                    const nameFromEmail = user.email.split('@')[0];
+                    userName.innerText = nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1);
+                    localStorage.setItem("userEmail", user.email);
+                } else {
+                    window.location.href = "index.html";
+                }
+                loader.classList.add('hidden');
+            });
+        };
+
+        window.logout = async function () {
+            try {
+                await signOut(auth);
+                localStorage.removeItem("userEmail");
+                window.location.href = "login.html";
+            } catch (error) {
+                console.error("Logout error:", error);
+            }
+        };
+    </script>
+
+    <!-- Loading Screen -->
+    <div id="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-white/90 transition-opacity duration-300">
+        <div class="flex flex-col items-center">
+            <div class="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-4 text-primary-700 font-medium">Loading your portal...</p>
+        </div>
+    </div>
+
+    <!-- Mobile Header -->
+    <header class="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white shadow-sm border-b border-gray-200">
+        <div class="flex justify-between items-center h-16 px-4">
+            <button id="menu-btn" class="p-2 rounded-lg hover:bg-gray-100">
+                <i class="fas fa-bars text-gray-600 text-xl"></i>
+            </button>
+            <div class="text-xl font-bold gradient-text">
+                Alpha Coder
+            </div>
+            <div class="w-8"></div> <!-- Spacer for balance -->
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar fixed top-0 left-0 bottom-0 w-64 bg-white shadow-lg z-30 lg:translate-x-0">
+        <div class="h-full flex flex-col">
+            <!-- Logo -->
+            <div class="p-6 border-b border-gray-200 hidden lg:block">
+                <div class="text-2xl font-bold gradient-text">
+                    Alpha Coder
+                </div>
+            </div>
+
+            <!-- User Profile -->
+            <div class="p-6 border-b border-gray-200 flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500 flex items-center justify-center text-white font-bold">
+                    <span id="userName">U</span>
+                </div>
+                <div>
+                    <p class="font-medium text-gray-900" id="userEmail">user@example.com</p>
+                    <p class="text-xs text-gray-500">Student</p>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 overflow-y-auto p-4">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="Menu.html" class="flex items-center p-3 rounded-lg bg-primary-50 text-primary-600 font-medium">
+                            <i class="fas fa-home mr-3"></i>
+                            Home
+                        </a>
+                    </li>
+                    <li>
+                        <a href="student.html" class="flex items-center p-3 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-clipboard-check mr-3"></i>
+                            Attendance
+                        </a>
+                    </li>
+                    <li>
+                        <a href="demo.html" class="flex items-center p-3 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-user-graduate mr-3"></i>
+                            My Profile
+                        </a>
+                    </li>
+                    <li>
+                        <a href="facultydetails.html" class="flex items-center p-3 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-chalkboard-teacher mr-3"></i>
+                            Faculty
+                        </a>
+                    </li>
+                    <li>
+                        <a href="event.html" class="flex items-center p-3 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-calendar-alt mr-3"></i>
+                            Events
+                        </a>
+                    </li>
+                    <li>
+                        <a href="studenttest.html" class="flex items-center p-3 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-file-alt mr-3"></i>
+                            Tests
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-chart-line mr-3"></i>
+                            Analytics
+                        </a>
+                    </li>
+                    <li>
+                        <a href="contactus.html" class="flex items-center p-3 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-envelope mr-3"></i>
+                            Contact
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Logout Button -->
+            <div class="p-4 border-t border-gray-200">
+                <button onclick="logout()" class="w-full flex items-center justify-center p-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors">
+                    <i class="fas fa-sign-out-alt mr-2"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 lg:ml-64 pt-16 lg:pt-0">
+        <div class="p-6 lg:p-8">
+            <!-- Welcome Banner -->
+            <div class="bg-gradient-to-r from-primary-500 to-secondary-600 rounded-xl p-6 lg:p-8 text-white shadow-lg mb-8">
+                <h1 class="text-2xl lg:text-3xl font-bold mb-2">Welcome back, <span id="welcomeName">Student</span>!</h1>
+                <p class="opacity-90">Here's what's happening with your academic journey today</p>
+            </div>
+
+            <!-- Stats Overview -->
+          
+
+            <!-- Quick Actions -->
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+                <a href="student.html" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center card-hover">
+                    <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <p class="text-sm font-medium">Mark Attendance</p>
+                </a>
+                <a href="studenttest.html" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center card-hover">
+                    <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-secondary-100 flex items-center justify-center text-secondary-600">
+                        <i class="fas fa-pen"></i>
+                    </div>
+                    <p class="text-sm font-medium">Test Prep</p>
+                </a>
+                <a href="demo.html" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center card-hover">
+                    <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <p class="text-sm font-medium">Update Profile</p>
+                </a>
+                <a href="event.html" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center card-hover">
+                    <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                        <i class="fas fa-calendar-plus"></i>
+                    </div>
+                    <p class="text-sm font-medium">View Events</p>
+                </a>
+                <a href="facultydetails.html" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center card-hover">
+                    <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <p class="text-sm font-medium">Faculty Info</p>
+                </a>
+                <a href="contactus.html" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center card-hover">
+                    <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <p class="text-sm font-medium">Get Help</p>
+                </a>
+            </div>
+
+            <!-- Main Cards Grid -->
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Your Academic Portal</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Attendance Card -->
+                <a href="student.html" class="group">
+                    <div class="h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 card-hover">
+                        <div class="p-6 flex flex-col items-center text-center">
+                            <div class="w-20 h-20 flex items-center justify-center bg-primary-50 rounded-full mb-4 text-primary-600 text-3xl transition-all duration-300 group-hover:bg-primary-100 group-hover:text-primary-700">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Attendance</h3>
+                            <p class="text-gray-600 text-sm">View and manage your class attendance records</p>
+                            <div class="mt-4 w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-primary-500 h-2 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Student Profile Card -->
+                <a href="demo.html" class="group">
+                    <div class="h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 card-hover">
+                        <div class="p-6 flex flex-col items-center text-center">
+                            <div class="w-20 h-20 flex items-center justify-center bg-secondary-50 rounded-full mb-4 text-secondary-600 text-3xl transition-all duration-300 group-hover:bg-secondary-100 group-hover:text-secondary-700">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Student Profile</h3>
+                            <p class="text-gray-600 text-sm">Access and update your personal information</p>
+                            <button class="mt-4 px-4 py-2 bg-secondary-100 text-secondary-600 rounded-lg text-sm font-medium hover:bg-secondary-200 transition">
+                                Update Profile
+                            </button>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Faculty Card -->
+                <a href="facultydetails.html" class="group">
+                    <div class="h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 card-hover">
+                        <div class="p-6 flex flex-col items-center text-center">
+                            <div class="w-20 h-20 flex items-center justify-center bg-primary-50 rounded-full mb-4 text-primary-600 text-3xl transition-all duration-300 group-hover:bg-primary-100 group-hover:text-primary-700">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Faculty</h3>
+                            <p class="text-gray-600 text-sm">View information about your teachers</p>
+                            <div class="mt-4 flex space-x-2">
+                                <span class="bg-primary-100 text-primary-800 text-xs px-2 py-1 rounded">Math: Dr. Smith</span>
+                                <span class="bg-primary-100 text-primary-800 text-xs px-2 py-1 rounded">Science: Prof. Lee</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Events Card -->
+                <a href="event.html" class="group">
+                    <div class="h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 card-hover">
+                        <div class="p-6 flex flex-col items-center text-center">
+                            <div class="w-20 h-20 flex items-center justify-center bg-secondary-50 rounded-full mb-4 text-secondary-600 text-3xl transition-all duration-300 group-hover:bg-secondary-100 group-hover:text-secondary-700">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Events</h3>
+                            <p class="text-gray-600 text-sm">Check upcoming academic and social events</p>
+                            <div class="mt-4 text-sm text-gray-700">
+                                <p><i class="fas fa-circle text-green-500 mr-1 text-xs"></i> Science Fair - Today 2PM</p>
+                                <p><i class="fas fa-circle text-blue-500 mr-1 text-xs"></i> Parent-Teacher - Tomorrow</p>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Test Card -->
+                <a href="studenttest.html" class="group">
+                    <div class="h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 card-hover">
+                        <div class="p-6 flex flex-col items-center text-center">
+                            <div class="w-20 h-20 flex items-center justify-center bg-primary-50 rounded-full mb-4 text-primary-600 text-3xl transition-all duration-300 group-hover:bg-primary-100 group-hover:text-primary-700">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Tests</h3>
+                            <p class="text-gray-600 text-sm">View your test schedules and results</p>
+                            <div class="mt-4 w-full">
+                                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>Math Test</span>
+                                    <span>Friday</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-500">
+                                    <span>Science Quiz</span>
+                                    <span>Next Mon</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Attendance Analysis Card -->
+                <a href="#" class="group">
+                    <div class="h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 card-hover">
+                        <div class="p-6 flex flex-col items-center text-center">
+                            <div class="w-20 h-20 flex items-center justify-center bg-secondary-50 rounded-full mb-4 text-secondary-600 text-3xl transition-all duration-300 group-hover:bg-secondary-100 group-hover:text-secondary-700">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Attendance Analysis</h3>
+                            <p class="text-gray-600 text-sm">Visualize your attendance patterns</p>
+                            <div class="mt-4 w-full h-20 bg-gray-100 rounded-lg flex items-end">
+                                <div class="h-1/4 bg-secondary-400 flex-1 mx-0.5 rounded-t-sm"></div>
+                                <div class="h-1/2 bg-secondary-400 flex-1 mx-0.5 rounded-t-sm"></div>
+                                <div class="h-3/4 bg-secondary-400 flex-1 mx-0.5 rounded-t-sm"></div>
+                                <div class="h-full bg-secondary-500 flex-1 mx-0.5 rounded-t-sm"></div>
+                                <div class="h-1/2 bg-secondary-400 flex-1 mx-0.5 rounded-t-sm"></div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-8">
+        <div class="max-w-7xl mx-auto py-6 px-6 lg:px-8 lg:ml-64">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-500 text-sm">© 2023 Alpha Coder. All rights reserved.</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-500 hover:text-primary-600 text-sm">Privacy</a>
+                    <a href="#" class="text-gray-500 hover:text-primary-600 text-sm">Terms</a>
+                    <a href="contactus.html" class="text-gray-500 hover:text-primary-600 text-sm">Help</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Set the welcome name from the user name
+        document.addEventListener('DOMContentLoaded', function() {
+            const userName = document.getElementById('userName');
+            const welcomeName = document.getElementById('welcomeName');
+            
+            if (userName && welcomeName) {
+                welcomeName.textContent = userName.textContent;
+            }
+        });
+    </script>
+</body>
+</html>

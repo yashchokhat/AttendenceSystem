@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student ID Card with Barcode</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    #card {
+      width: 3.5in;
+      height: 2.2in;
+    }
+    
+    .background-logo {
+      opacity: 0.08;
+    }
+    
+    .background-logo img {
+      filter: blur(1px);
+    }
+    
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #card, #card * {
+        visibility: visible;
+      }
+      #card {
+        position: absolute;
+        left: 0;
+        top: 0;
+        box-shadow: none;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen py-8">
+  <div class="max-w-4xl mx-auto px-4">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">Student ID Card Generator</h1>
+      <p class="text-gray-600">Create professional student ID cards with barcodes</p>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Form Section -->
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Student Information</h2>
+        <form id="studentForm" class="space-y-4">
+          <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
+            <input type="text" id="name" placeholder="Enter full name" required 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="tagId" class="block text-sm font-medium text-gray-700 mb-1">Tag ID</label>
+              <input type="text" id="tagId" placeholder="Barcode ID" required 
+                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+            <div>
+              <label for="roll" class="block text-sm font-medium text-gray-700 mb-1">Roll Number</label>
+              <input type="text" id="roll" placeholder="Roll No" required 
+                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="class" class="block text-sm font-medium text-gray-700 mb-1">Class</label>
+              <input type="text" id="class" placeholder="Class" required 
+                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+            <div>
+              <label for="section" class="block text-sm font-medium text-gray-700 mb-1">Section</label>
+              <input type="text" id="section" placeholder="Section" required 
+                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+          </div>
+          
+          <div>
+            <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+            <textarea id="address" placeholder="Student address" required rows="3"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></textarea>
+          </div>
+          
+          <div>
+            <label for="photo" class="block text-sm font-medium text-gray-700 mb-1">Student Photo</label>
+            <input type="file" id="photo" accept="image/*" required 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+          </div>
+          
+          <button type="submit" 
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 transform hover:scale-[1.01] shadow-md">
+            Generate ID Card
+          </button>
+        </form>
+      </div>
+      
+      <!-- Preview Section -->
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-gray-800">Card Preview</h2>
+          <div id="actionBtns" class="hidden space-x-2">
+            <button onclick="printCard()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print
+            </button>
+            <button onclick="downloadCard()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download
+            </button>
+          </div>
+        </div>
+        
+        <div class="flex justify-center">
+          <div id="card" class="hidden bg-white border-4 border-blue-800 shadow-lg relative flex flex-col overflow-hidden rounded-xl">
+            <div class="bg-blue-800 text-white text-center py-1 font-bold text-sm">
+              SIDDHIVINAYAK TECHNICAL CAMPUS
+            </div>
+
+            <div class="background-logo absolute inset-0 flex justify-center items-center">
+              <img src="stclogo.png" alt="Background Logo" class="max-w-[80%] max-h-[80%]">
+            </div>
+
+            <div class="card-body flex flex-1 relative">
+              <div class="card-left w-[35%] p-2 flex flex-col items-center justify-start gap-1">
+                <img id="cardPhoto" src="" alt="Student Photo" class="w-16 h-20 object-cover rounded-lg border-2 border-black">
+                <svg id="barcode" class="mt-1 w-full"></svg>
+              </div>
+
+              <div class="card-right w-[65%] p-2 flex flex-col justify-center text-left text-xs">
+                <h3 id="cardName" class="font-bold text-red-600 text-sm mb-1"></h3>
+                <p id="cardTag" class="text-gray-800"></p>
+                <p id="cardRoll" class="text-gray-800"></p>
+                <p id="cardClass" class="text-gray-800"></p>
+                <p id="cardSection" class="text-gray-800"></p>
+                <p id="cardAddress" class="text-gray-800"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-6 bg-blue-50 rounded-lg p-4">
+          <h3 class="text-sm font-medium text-blue-800 mb-2">Barcode Scanner</h3>
+          <p class="text-xs text-gray-600">Connect a barcode scanner or use keyboard input. Scan a generated card to view student info.</p>
+          <div id="scanResult" class="mt-2 hidden bg-white p-3 rounded border border-gray-200 text-sm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('studentForm');
+    const studentData = {}; // To store student info by Tag ID
+    const scanResult = document.getElementById('scanResult');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value;
+      const tagId = document.getElementById('tagId').value;
+      const roll = document.getElementById('roll').value;
+      const classVal = document.getElementById('class').value;
+      const section = document.getElementById('section').value;
+      const address = document.getElementById('address').value;
+      const photoFile = document.getElementById('photo').files[0];
+
+      studentData[tagId] = { name, tagId, roll, classVal, section, address };
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('cardPhoto').src = e.target.result;
+      };
+      reader.readAsDataURL(photoFile);
+
+      document.getElementById('cardName').innerText = name;
+      document.getElementById('cardTag').innerText = `Tag ID: ${tagId}`;
+      document.getElementById('cardRoll').innerText = `Roll No: ${roll}`;
+      document.getElementById('cardClass').innerText = `Class: ${classVal}`;
+      document.getElementById('cardSection').innerText = `Section: ${section}`;
+      document.getElementById('cardAddress').innerText = `Address: ${address}`;
+
+      JsBarcode("#barcode", tagId, {
+        format: "CODE128",
+        width: 1.8,
+        height: 35,
+        displayValue: false,
+        margin: 0
+      });
+
+      document.getElementById('card').classList.remove('hidden');
+      document.getElementById('actionBtns').classList.remove('hidden');
+      
+      // Scroll to preview section
+      document.querySelector('[id="actionBtns"]').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    function printCard() {
+      window.print();
+    }
+
+    function downloadCard() {
+      html2canvas(document.getElementById("card")).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `id_card_${document.getElementById('tagId').value}.png`;
+        link.href = canvas.toDataURL('image/png', 1.0);
+        link.click();
+      });
+    }
+
+    // Barcode Scanner Listener
+    let barcodeInput = '';
+    let timer = null;
+
+    window.addEventListener('keydown', (e) => {
+      if (timer) clearTimeout(timer);
+
+      if (e.key === 'Enter') {
+        if (barcodeInput.length > 0) {
+          if (studentData[barcodeInput]) {
+            const s = studentData[barcodeInput];
+            scanResult.innerHTML = `
+              <p class="font-medium">Scanned ID: ${barcodeInput}</p>
+              <p class="mt-1"><span class="font-medium">Name:</span> ${s.name}</p>
+              <p><span class="font-medium">Roll:</span> ${s.roll}</p>
+              <p><span class="font-medium">Class:</span> ${s.classVal} - ${s.section}</p>
+              <p class="mt-1 text-xs text-green-600 font-medium">✓ Valid ID card</p>
+            `;
+          } else {
+            scanResult.innerHTML = `
+              <p class="font-medium">Scanned ID: ${barcodeInput}</p>
+              <p class="mt-1 text-red-600 font-medium">✗ Unknown barcode - No student found</p>
+            `;
+          }
+          scanResult.classList.remove('hidden');
+          barcodeInput = '';
+        }
+      } else if (e.key.length === 1) { // Only alphanumeric characters
+        barcodeInput += e.key;
+        timer = setTimeout(() => {
+          barcodeInput = '';
+        }, 300);
+      }
+    });
+  </script>
+</body>
+</html>

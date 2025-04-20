@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Event Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID",
+            databaseURL: "https://iot-esp8266-73cc1-default-rtdb.firebaseio.com/"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Function to save event details
+        window.saveEventDetails = async function () {
+            const empId = document.getElementById('empId').value.trim();
+            const eventName = document.getElementById('eventName').value.trim();
+            const eventDate = document.getElementById('eventDate').value.trim();
+            const eventTime = document.getElementById('eventTime').value.trim();
+            const eventLocation = document.getElementById('eventLocation').value.trim();
+            const eventDescription = document.getElementById('eventDescription').value.trim();
+            const eventOrganizer = document.getElementById('eventOrganizer').value.trim();
+            const message = document.getElementById('message');
+            const submitBtn = document.getElementById('submitBtn');
+            const loadingIndicator = document.getElementById('submitLoading');
+
+            if (!empId || !eventName || !eventDate || !eventTime || !eventDescription || !eventOrganizer) {
+                showMessage("Please fill all required fields", "error");
+                return;
+            }
+
+            try {
+                submitBtn.disabled = true;
+                loadingIndicator.classList.remove("hidden");
+
+                const eventRef = push(ref(db, `events/${eventDate}`));
+                await set(eventRef, {
+                    "Faculty ID": empId,
+                    "Event Name": eventName,
+                    "Date": eventDate,
+                    "Time": eventTime,
+                    "Location": eventLocation,
+                    "Description": eventDescription,
+                    "Organizer": eventOrganizer,
+                    "Timestamp": new Date().toISOString()
+                });
+
+                showMessage("Event added successfully!", "success");
+                document.getElementById('eventForm').reset();
+            } catch (error) {
+                showMessage("Error: " + error.message, "error");
+                console.error("Error saving event:", error);
+            } finally {
+                submitBtn.disabled = false;
+                loadingIndicator.classList.add("hidden");
+            }
+        };
+
+        function showMessage(text, type) {
+            const message = document.getElementById('message');
+            message.innerHTML = text;
+            message.className = `text-center mt-3 text-sm font-medium rounded-lg p-3 ${
+                type === "success" ? "bg-green-100 text-green-800" : 
+                type === "error" ? "bg-red-100 text-red-800" : 
+                "bg-blue-100 text-blue-800"
+            }`;
+        }
+
+        // Set minimum date to today
+        document.addEventListener("DOMContentLoaded", function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('eventDate').min = today;
+        });
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: url('https://source.unsplash.com/1600x900/?event,conference') no-repeat center center/cover;
+            background-attachment: fixed;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .input-icon {
+            color: #9CA3AF;
+        }
+        .input-field {
+            transition: all 0.3s ease;
+        }
+        .input-field:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="glass-card rounded-2xl shadow-xl overflow-hidden w-full max-w-lg fade-in">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5">
+            <h2 class="text-xl font-bold text-white flex items-center">
+                <i class="fas fa-calendar-plus mr-2"></i> Add New Event
+            </h2>
+            <p class="text-blue-100 text-sm mt-1">Fill the form to create a new event</p>
+        </div>
+        
+        <form id="eventForm" class="p-6">
+            <div class="space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="empId" class="block text-sm font-medium text-gray-700 mb-1">
+                            Faculty ID <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-id-card input-icon"></i>
+                            </div>
+                            <input type="text" id="empId" placeholder="FAC12345" 
+                                class="pl-10 input-field block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="eventOrganizer" class="block text-sm font-medium text-gray-700 mb-1">
+                            Organizer <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user-tie input-icon"></i>
+                            </div>
+                            <input type="text" id="eventOrganizer" placeholder="Organizer Name" 
+                                class="pl-10 input-field block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="eventName" class="block text-sm font-medium text-gray-700 mb-1">
+                        Event Name <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-calendar-check input-icon"></i>
+                        </div>
+                        <input type="text" id="eventName" placeholder="Annual College Fest" 
+                            class="pl-10 input-field block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="eventDate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Date <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="far fa-calendar-alt input-icon"></i>
+                            </div>
+                            <input type="date" id="eventDate" 
+                                class="pl-10 input-field block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="eventTime" class="block text-sm font-medium text-gray-700 mb-1">
+                            Time <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="far fa-clock input-icon"></i>
+                            </div>
+                            <input type="time" id="eventTime" 
+                                class="pl-10 input-field block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="eventLocation" class="block text-sm font-medium text-gray-700 mb-1">
+                        Location
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-map-marker-alt input-icon"></i>
+                        </div>
+                        <input type="text" id="eventLocation" placeholder="College Auditorium" 
+                            class="pl-10 input-field block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="eventDescription" class="block text-sm font-medium text-gray-700 mb-1">
+                        Description <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="eventDescription" rows="4" placeholder="Event details, agenda, etc." 
+                        class="input-field block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                </div>
+
+                <div>
+                    <button type="button" id="submitBtn" onclick="saveEventDetails()" 
+                        class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                        <span id="submitLoading" class="hidden mr-2">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                        <span class="flex items-center">
+                            <i class="fas fa-plus-circle mr-2"></i>
+                            Add Event
+                        </span>
+                    </button>
+                    <p id="message" class="mt-3"></p>
+                </div>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

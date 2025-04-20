@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Portal - Create Test</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        .login-section {
+            padding: 25px;
+            border: none;
+            margin-bottom: 30px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .question {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: transform 0.2s;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 8px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            background: #4CAF50;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(76,175,80,0.3);
+        }
+        input[type="email"], input[type="password"], input[type="text"], input[type="number"], input[type="datetime-local"], select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76,175,80,0.2);
+        }
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        #question-form {
+            display: grid;
+            gap: 15px;
+        }
+        .success-message {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            background: #e8f5e9;
+            border-radius: 8px;
+            color: #2e7d32;
+            font-size: 18px;
+            display: none;
+        }
+        .timer-settings {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .timer-settings input {
+            width: 60px;
+        }
+        .question-list {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .question-item {
+            padding: 15px;
+            background: #f5f5f5;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="login-section" class="login-section">
+            <h2>Teacher Login</h2>
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="login()">Login</button>
+        </div>
+
+        <div id="teacher-section" class="teacher-section" style="display: none;">
+            <h2>Create New Test</h2>
+            <input type="text" id="test-name" placeholder="Enter Test Name">
+            <input type="text" id="test-code" placeholder="Enter Test Code (unique identifier)">
+            
+            <div class="timer-settings">
+                <label>Test Duration:</label>
+                <input type="number" id="hours" placeholder="Hours" min="0" value="1">
+                <span>:</span>
+                <input type="number" id="minutes" placeholder="Minutes" min="0" max="59" value="0">
+                <span>:</span>
+                <input type="number" id="seconds" placeholder="Seconds" min="0" max="59" value="0">
+            </div>
+            
+            <input type="datetime-local" id="test-datetime" placeholder="Test Date and Time">
+            
+            <div id="question-form">
+                <h3>Add Question</h3>
+                <input type="text" id="question" placeholder="Enter question">
+                <input type="text" id="option1" placeholder="Option 1">
+                <input type="text" id="option2" placeholder="Option 2">
+                <input type="text" id="option3" placeholder="Option 3">
+                <input type="text" id="option4" placeholder="Option 4">
+                <select id="correct-answer">
+                    <option value="">Select Correct Answer</option>
+                    <option value="0">Option 1</option>
+                    <option value="1">Option 2</option>
+                    <option value="2">Option 3</option>
+                    <option value="3">Option 4</option>
+                </select>
+                <button onclick="addQuestion()">Add Question</button>
+            </div>
+            
+            <div class="question-list" id="question-list">
+                <h3>Questions Added</h3>
+                <div id="questions-added"></div>
+            </div>
+            
+            <button onclick="publishTest()">Publish Test</button>
+            <div id="success-message" class="success-message"></div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDEFEfN0FvjX5u1Upg-WTqgvWXpDha-8Kc",
+            authDomain: "iot-esp8266-73cc1.firebaseapp.com",
+            projectId: "iot-esp8266-73cc1",
+            storageBucket: "iot-esp8266-73cc1.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        let currentUser = null;
+        let questions = [];
+
+        function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    currentUser = userCredential.user;
+                    if (email === 'alphacodres23@gmail.com') {
+                        showSection('teacher');
+                    } else {
+                        alert('Only teacher accounts can access this portal');
+                        auth.signOut();
+                    }
+                })
+                .catch((error) => alert(error.message));
+        }
+
+        function showSection(role) {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('teacher-section').style.display = 'block';
+        }
+
+        function addQuestion() {
+            const questionText = document.getElementById('question').value;
+            const option1 = document.getElementById('option1').value;
+            const option2 = document.getElementById('option2').value;
+            const option3 = document.getElementById('option3').value;
+            const option4 = document.getElementById('option4').value;
+            const correctAnswer = document.getElementById('correct-answer').value;
+
+            if (!questionText || !option1 || !option2 || !option3 || !option4 || correctAnswer === "") {
+                alert('Please fill all fields');
+                return;
+            }
+
+            const question = {
+                text: questionText,
+                options: [option1, option2, option3, option4],
+                correctAnswer: parseInt(correctAnswer)
+            };
+            
+            questions.push(question);
+            displayAddedQuestions();
+            clearQuestionForm();
+        }
+
+        function displayAddedQuestions() {
+            const container = document.getElementById('questions-added');
+            container.innerHTML = '';
+            
+            questions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-item';
+                questionDiv.innerHTML = `
+                    <p><strong>Q${index + 1}:</strong> ${q.text}</p>
+                    <p>Correct Answer: ${q.options[q.correctAnswer]}</p>
+                `;
+                container.appendChild(questionDiv);
+            });
+        }
+
+        function clearQuestionForm() {
+            document.getElementById('question').value = '';
+            document.getElementById('option1').value = '';
+            document.getElementById('option2').value = '';
+            document.getElementById('option3').value = '';
+            document.getElementById('option4').value = '';
+            document.getElementById('correct-answer').value = '';
+        }
+
+        function publishTest() {
+            const testName = document.getElementById('test-name').value;
+            const testCode = document.getElementById('test-code').value;
+            const testDateTime = new Date(document.getElementById('test-datetime').value).getTime();
+            
+            // Calculate total duration in seconds
+            const hours = parseInt(document.getElementById('hours').value) || 0;
+            const minutes = parseInt(document.getElementById('minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('seconds').value) || 0;
+            const duration = (hours * 3600) + (minutes * 60) + seconds;
+
+            if (!testName || !testCode) {
+                alert('Please enter test name and test code');
+                return;
+            }
+
+            if (questions.length === 0) {
+                alert('Please add at least one question');
+                return;
+            }
+
+            if (duration <= 0) {
+                alert('Please set a valid test duration');
+                return;
+            }
+
+            database.ref(`tests/${testCode}`).set({
+                name: testName,
+                questions: questions,
+                timestamp: Date.now(),
+                testDateTime: testDateTime,
+                duration: duration
+            }).then(() => {
+                const successMsg = document.getElementById('success-message');
+                successMsg.style.display = 'block';
+                successMsg.innerHTML = `
+                    <h3>Test Published Successfully!</h3>
+                    <p>Test Code: ${testCode}</p>
+                    <p>Number of Questions: ${questions.length}</p>
+                    <p>Duration: ${hours}h ${minutes}m ${seconds}s</p>
+                `;
+                
+                // Reset form
+                questions = [];
+                document.getElementById('test-name').value = '';
+                document.getElementById('test-code').value = '';
+                document.getElementById('questions-added').innerHTML = '';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch Drive Links</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+</head>
+<body>
+    <input type="text" id="subjectInput" placeholder="Enter Subject Name">
+    <button onclick="fetchDriveLinks()">Get Drive Links</button>
+    <ul id="driveLinksList"></ul>
+
+    <script>
+        // Firebase Configuration
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDEFEfN0FvjX5u1Upg-WTqgvWXpDha-8Kc",
+            authDomain: "iot-esp8266-73cc1.firebaseapp.com",
+            projectId: "iot-esp8266-73cc1",
+            storageBucket: "iot-esp8266-73cc1.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function fetchDriveLinks() {
+            let subjectName = document.getElementById('subjectInput').value;
+            let driveLinksList = document.getElementById('driveLinksList');
+            driveLinksList.innerHTML = '';
+
+            db.ref('notes/' + subjectName).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        let data = childSnapshot.val();
+                        let listItem = document.createElement('li');
+                        listItem.innerHTML = `<a href="${data.driveLink}" target="_blank">${data.driveLink}</a>`;
+                        driveLinksList.appendChild(listItem);
+                    });
+                } else {
+                    driveLinksList.innerHTML = '<li>No drive links found</li>';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

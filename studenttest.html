@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Portal - Online Test</title>
+  <!-- Vite/Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .option-selected {
+      @apply bg-blue-50 border-blue-200;
+    }
+    
+    .option-correct {
+      @apply bg-green-50 border-green-200;
+    }
+    
+    .option-incorrect {
+      @apply bg-red-50 border-red-200;
+    }
+    
+    .blur-background {
+      filter: blur(5px);
+      pointer-events: none;
+      transition: filter 0.3s ease;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Warning Modal -->
+    <div id="warning-message" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black bg-opacity-50">
+      <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full">
+        <div class="text-center">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h3 id="warning-title" class="text-lg font-medium text-gray-900 mt-3">Warning</h3>
+          <div id="warning-content" class="mt-2 text-sm text-gray-500">
+            <p>Split screen or new tab detected! This is your first warning.</p>
+          </div>
+          <div class="mt-5">
+            <button onclick="dismissWarning()" type="button" class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Timer -->
+    <div id="timer" class="fixed top-4 right-4 hidden">
+      <div class="flex items-center bg-white rounded-full shadow-lg px-4 py-2">
+        <svg class="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="font-medium">Time Left:</span>
+        <span id="time" class="font-bold ml-1">00:00:00</span>
+      </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-white">Student Test Portal</h1>
+            <p class="text-blue-100">Online Examination System</p>
+          </div>
+          <div id="student-info-badge" class="hidden bg-white bg-opacity-20 rounded-full px-4 py-2">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                <span id="student-initials"></span>
+              </div>
+              <div class="ml-3">
+                <p id="student-name" class="text-sm font-medium text-white"></p>
+                <p id="student-roll" class="text-xs text-blue-100"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Content Area -->
+      <div class="p-6">
+        <!-- Tag ID Verification -->
+        <div id="tag-id-section" class="max-w-md mx-auto">
+          <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Verify Your Identity</h2>
+            <p class="text-gray-600">Enter your student Tag ID to continue</p>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="tag-id" class="block text-sm font-medium text-gray-700 mb-1">Tag ID</label>
+              <input type="text" id="tag-id" placeholder="Enter your Tag ID" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+            
+            <button onclick="validateTagId()" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+              Verify Identity
+              <svg class="ml-2 -mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Test Code Entry -->
+        <div id="test-code-section" class="max-w-md mx-auto hidden">
+          <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Enter Test Code</h2>
+            <p class="text-gray-600">Enter the test code provided by your instructor</p>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label for="enter-test-code" class="block text-sm font-medium text-gray-700 mb-1">Test Code</label>
+              <input type="text" id="enter-test-code" placeholder="Enter Test Code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+            
+            <button onclick="joinTest()" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+              Start Test
+              <svg class="ml-2 -mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Test Questions -->
+        <div id="test-questions" class="hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-gray-800">Test Questions</h2>
+            <button id="submit-btn" onclick="submitTest()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+              Submit Test
+              <svg class="ml-2 -mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          
+          <div id="question-form" class="space-y-6"></div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="results-section" class="hidden">
+          <div id="result-message" class="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+              <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-medium text-green-800 mb-1">Test Submitted Successfully!</h3>
+            <div id="result-score" class="text-green-600"></div>
+          </div>
+          
+          <div class="mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Detailed Results</h2>
+            <div id="all-results" class="space-y-4"></div>
+          </div>
+          
+          <div class="flex justify-center">
+            <button id="download-result" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+              Download Result as PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDEFEfN0FvjX5u1Upg-WTqgvWXpDha-8Kc",
+      authDomain: "iot-esp8266-73cc1.firebaseapp.com",
+      projectId: "iot-esp8266-73cc1",
+      storageBucket: "iot-esp8266-73cc1.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    let warningCount = 0;
+    let testTimer = null;
+    let timeLeft = 0;
+    let tagIdValid = false;
+    let currentTestCode = '';
+    let studentInfo = {};
+
+    function dismissWarning() {
+      document.getElementById('warning-message').classList.add('hidden');
+      document.getElementById('main-container').classList.remove('blur-background');
+    }
+
+    function startTimer(duration) {
+      timeLeft = duration;
+      updateTimerDisplay();
+      document.getElementById('timer').classList.remove('hidden');
+      
+      testTimer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        
+        if (timeLeft <= 0) {
+          clearInterval(testTimer);
+          submitTest(true);
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const hours = Math.floor(timeLeft / 3600);
+      const minutes = Math.floor((timeLeft % 3600) / 60);
+      const seconds = timeLeft % 60;
+      
+      const timerElement = document.getElementById('timer');
+      
+      // Update timer colors based on remaining time
+      if (timeLeft <= 300) { // 5 minutes or less
+        timerElement.classList.add('bg-red-500', 'text-white');
+        timerElement.classList.remove('bg-yellow-500', 'bg-white');
+      } else if (timeLeft <= 900) { // 15 minutes or less
+        timerElement.classList.add('bg-yellow-500', 'text-white');
+        timerElement.classList.remove('bg-red-500', 'bg-white');
+      } else {
+        timerElement.classList.add('bg-white');
+        timerElement.classList.remove('bg-red-500', 'bg-yellow-500', 'text-white');
+      }
+      
+      document.getElementById('time').textContent = 
+        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Detect new tabs/windows and split screen
+    document.addEventListener('visibilitychange', function() {
+      if(document.getElementById('test-questions').classList.contains('hidden') === false) {
+        if(document.hidden) {
+          warningCount++;
+          const warningMsg = document.getElementById('warning-message');
+          const warningTitle = document.getElementById('warning-title');
+          const warningContent = document.getElementById('warning-content');
+          
+          warningTitle.textContent = `Warning #${warningCount}`;
+          warningContent.innerHTML = `
+            <p>You switched to another tab/window!</p>
+            ${warningCount >= 2 ? '<p class="mt-2 font-medium">Next violation will auto-submit your test!</p>' : ''}
+          `;
+          
+          warningMsg.classList.remove('hidden');
+          document.getElementById('main-container').classList.add('blur-background');
+
+          if(warningCount >= 3) {
+            submitTest(true);
+          }
+        }
+      }
+    });
+
+    // Warn before closing/refreshing page during test
+    window.addEventListener('beforeunload', function (e) {
+      if(document.getElementById('test-questions').classList.contains('hidden') === false) {
+        e.preventDefault();
+        e.returnValue = 'Are you sure you want to leave? Your test may be submitted.';
+      }
+    });
+
+    function validateTagId() {
+      const tagId = document.getElementById('tag-id').value;
+      if (!tagId) {
+        alert('Please enter your Tag ID');
+        return;
+      }
+
+      // Check student information
+      database.ref(`attendance/${tagId}`).once('value')
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            studentInfo = snapshot.val();
+            tagIdValid = true;
+            
+            // Display student info
+            document.getElementById('student-info-badge').classList.remove('hidden');
+            document.getElementById('student-name').textContent = studentInfo.name;
+            document.getElementById('student-roll').textContent = `Roll: ${studentInfo.rollno}`;
+            document.getElementById('student-initials').textContent = studentInfo.name.split(' ').map(n => n[0]).join('').toUpperCase();
+            
+            document.getElementById('tag-id-section').classList.add('hidden');
+            document.getElementById('test-code-section').classList.remove('hidden');
+          } else {
+            alert('Invalid Tag ID or student information not found.');
+          }
+        });
+    }
+
+    function joinTest() {
+      currentTestCode = document.getElementById('enter-test-code').value;
+      if (!currentTestCode) {
+        alert('Please enter test code');
+        return;
+      }
+
+      database.ref(`tests/${currentTestCode}`).once('value')
+        .then((snapshot) => {
+          const test = snapshot.val();
+          if (test) {
+            const now = Date.now();
+            const testTime = test.testDateTime;
+            const duration = test.duration || 3600;
+            
+            // Check if test is available
+            if (now < testTime) {
+              alert('This test is not available yet. Please check the test schedule.');
+              return;
+            }
+            
+            // Check if test has expired (1 day after test time + duration)
+            if (now > (testTime + duration * 1000 + 86400000)) {
+              alert('This test has expired and is no longer available.');
+              return;
+            }
+            
+            displayTest(test.questions);
+            document.getElementById('test-code-section').classList.add('hidden');
+            document.getElementById('test-questions').classList.remove('hidden');
+            document.getElementById('submit-btn').classList.remove('hidden');
+            startTimer(duration);
+            
+            // Prevent navigation
+            history.pushState(null, null, location.href);
+            window.onpopstate = function () {
+              history.go(1);
+              alert("Please complete your test before leaving the page!");
+            };
+          } else {
+            alert('Invalid test code');
+          }
+        });
+    }
+
+    function displayTest(testQuestions) {
+      const container = document.getElementById('question-form');
+      container.innerHTML = '';
+      
+      testQuestions.forEach((q, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'bg-gray-50 p-6 rounded-lg border border-gray-200';
+        questionDiv.innerHTML = `
+          <p class="text-lg font-medium text-gray-800 mb-4">Question ${index + 1}: ${q.text}</p>
+          <div class="space-y-3">
+            ${q.options.map((opt, i) => `
+              <label class="block p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                <input type="radio" name="q${index}" value="${i}" class="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500">
+                ${opt}
+              </label>
+            `).join('')}
+          </div>
+        `;
+        container.appendChild(questionDiv);
+      });
+    }
+
+    function submitTest(autoSubmit = false) {
+      if (testTimer) clearInterval(testTimer);
+      
+      const tagId = document.getElementById('tag-id').value;
+      let score = 0;
+      const answeredQuestions = [];
+      
+      database.ref(`tests/${currentTestCode}/questions`).once('value')
+        .then((snapshot) => {
+          const questions = snapshot.val();
+          const totalQuestions = questions.length;
+          
+          questions.forEach((q, index) => {
+            const selected = document.querySelector(`input[name="q${index}"]:checked`);
+            const isCorrect = selected && parseInt(selected.value) === q.correctAnswer;
+            
+            if (isCorrect) {
+              score++;
+            }
+            
+            answeredQuestions.push({
+              question: q.text,
+              selected: selected ? q.options[parseInt(selected.value)] : 'Not answered',
+              correct: q.options[q.correctAnswer],
+              isCorrect: isCorrect
+            });
+          });
+          
+          // Save results
+          database.ref(`results/${currentTestCode}/${tagId}`).set({
+            score: score,
+            total: totalQuestions,
+            percentage: ((score / totalQuestions) * 100).toFixed(2),
+            timestamp: Date.now(),
+            autoSubmitted: autoSubmit,
+            timeRemaining: timeLeft,
+            studentInfo: studentInfo
+          });
+          
+          // Display results
+          showResults(score, totalQuestions, answeredQuestions, autoSubmit);
+        });
+    }
+
+    function showResults(score, total, answeredQuestions, autoSubmit) {
+      document.getElementById('timer').classList.add('hidden');
+      document.getElementById('test-questions').classList.add('hidden');
+      document.getElementById('submit-btn').classList.add('hidden');
+      
+      const resultMessage = document.getElementById('result-message');
+      if (autoSubmit) {
+        resultMessage.classList.remove('bg-green-50', 'border-green-200');
+        resultMessage.classList.add('bg-yellow-50', 'border-yellow-200');
+        resultMessage.querySelector('svg').classList.remove('text-green-600');
+        resultMessage.querySelector('svg').classList.add('text-yellow-600');
+        resultMessage.querySelector('div').classList.remove('bg-green-100');
+        resultMessage.querySelector('div').classList.add('bg-yellow-100');
+        resultMessage.querySelector('h3').textContent = 'Test Auto-Submitted!';
+        resultMessage.querySelector('h3').classList.remove('text-green-800');
+        resultMessage.querySelector('h3').classList.add('text-yellow-800');
+      }
+      
+      document.getElementById('result-score').innerHTML = `
+        <p class="text-lg font-bold">${score}/${total}</p>
+        <p class="text-sm">${((score/total) * 100).toFixed(2)}%</p>
+      `;
+      
+      // Show detailed results
+      document.getElementById('results-section').classList.remove('hidden');
+      
+      let resultsHTML = '';
+      answeredQuestions.forEach((q, index) => {
+        resultsHTML += `
+          <div class="p-6 rounded-lg border ${q.isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+            <div class="flex items-start">
+              <div class="flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center ${q.isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
+                ${q.isCorrect ? '✓' : '✗'}
+              </div>
+              <div class="ml-3">
+                <h4 class="text-md font-medium text-gray-800">Question ${index + 1}: ${q.question}</h4>
+                <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="p-3 bg-white rounded border ${q.isCorrect ? 'border-green-200' : 'border-red-200'}">
+                    <p class="text-sm font-medium text-gray-500">Your Answer:</p>
+                    <p class="mt-1 ${q.isCorrect ? 'text-green-700' : 'text-red-700'}">${q.selected}</p>
+                  </div>
+                  <div class="p-3 bg-white rounded border border-gray-200">
+                    <p class="text-sm font-medium text-gray-500">Correct Answer:</p>
+                    <p class="mt-1 text-gray-700">${q.correct}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      document.getElementById('all-results').innerHTML = resultsHTML;
+      
+      // Setup PDF download
+      document.getElementById('download-result').onclick = function() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Add student info
+        doc.setFontSize(16);
+        doc.setTextColor(37, 99, 235);
+        doc.text('Test Results', 105, 15, { align: 'center' });
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Student: ${studentInfo.name} (${studentInfo.rollno})`, 14, 25);
+        doc.text(`Test Code: ${currentTestCode}`, 14, 35);
+        doc.text(`Score: ${score}/${total} (${((score/total) * 100).toFixed(2)}%)`, 14, 45);
+        
+        // Add questions
+        let yPos = 60;
+        answeredQuestions.forEach((q, index) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          doc.setFontSize(12);
+          doc.setTextColor(0, 0, 0);
+          doc.text(`Q${index + 1}: ${q.question}`, 14, yPos);
+          
+          doc.setFontSize(10);
+          doc.setTextColor(q.isCorrect ? 0 : 255, q.isCorrect ? 128 : 0, 0);
+          doc.text(`Your Answer: ${q.selected}`, 20, yPos + 7);
+          
+          doc.setTextColor(0, 0, 0);
+          doc.text(`Correct Answer: ${q.correct}`, 20, yPos + 14);
+          
+          doc.setTextColor(q.isCorrect ? 0 : 255, q.isCorrect ? 128 : 0, 0);
+          doc.text(`Status: ${q.isCorrect ? 'Correct' : 'Incorrect'}`, 20, yPos + 21);
+          
+          yPos += 30;
+        });
+        
+        doc.save(`Test_Result_${studentInfo.rollno}_${currentTestCode}.pdf`);
+      };
+    }
+  </script>
+</body>
+</html>
